@@ -12,7 +12,6 @@ const PROFANITY = /\b(fuck|shit|cunt|bitch|bastard|asshole|motherfucker)\b/i;
 const CONTROL_CHARS = /[\u0000-\u001f\u007f]/;
 const RATE_WINDOW_MS = 10 * 60_000;
 const RATE_LIMIT = 1;
-const recentRequests = new Map();
 const CORS_HEADERS = {
   "access-control-allow-origin": "https://pngblackout.github.io",
   "access-control-allow-methods": "GET, POST, OPTIONS",
@@ -57,15 +56,26 @@ export function validateReport(input) {
   return { value: { latitude, longitude, accuracy, city, suburb: suburb || null, locality: locality || null, impact, duration, description: null } };
 }
 
-function isRateLimited(request, action = "report") {
+async function rateKey(request, action) {
   const cloudflareIp = request.headers.get("cf-connecting-ip");
   const forwardedIp = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
   const clientIp = cloudflareIp || forwardedIp || "unknown";
-  const rateKey = `${action}:${clientIp}`;
+  const bytes = new TextEncoder().encode(`${action}:${clientIp}`);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+async function isRateLimited(request, env, action = "report") {
+  const key = await rateKey(request, action);
   const now = Date.now();
-  const entries = (recentRequests.get(rateKey) || []).filter((time) => now - time < RATE_WINDOW_MS);
-  if (entries.length >= RATE_LIMIT) { recentRequests.set(rateKey, entries); return true; }
-  entries.push(now); recentRequests.set(rateKey, entries); return false;
+  const existing = await env.DB.prepare("SELECT window_started_at, request_count FROM rate_limits WHERE rate_key = ?").bind(key).first();
+  if (existing && now - existing.window_started_at < RATE_WINDOW_MS && existing.request_count >= RATE_LIMIT) return true;
+  if (existing) {
+    await env.DB.prepare("UPDATE rate_limits SET window_started_at = ?, request_count = 1 WHERE rate_key = ?").bind(now, key).run();
+  } else {
+    await env.DB.prepare("INSERT INTO rate_limits (rate_key, window_started_at, request_count) VALUES (?, ?, 1)").bind(key, now).run();
+  }
+  return false;
 }
 
 function isPapuaNewGuinea(request) {
@@ -102,7 +112,7 @@ async function createOutage(request, env) {
   if (body === null) return json({ error: "Request body is missing, invalid, or too large." }, 400);
   const checked = validateReport(body);
   if (checked.error) return json({ error: checked.error }, 400);
-  if (isRateLimited(request, "report")) return json({ error: "Please try again later." }, 429);
+  if (await isRateLimited(request, env, "report")) return json({ error: "Please try again later." }, 429);
   const now = new Date().toISOString();
   const result = await env.DB.prepare("INSERT INTO outages (latitude, longitude, city, suburb, locality, impact, duration, started_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
     .bind(checked.value.latitude, checked.value.longitude, checked.value.city, checked.value.suburb, checked.value.locality, checked.value.impact, checked.value.duration, now, now).run();
@@ -111,7 +121,7 @@ async function createOutage(request, env) {
 
 async function restoreOutage(request, env, id) {
   if (!isPapuaNewGuinea(request)) return json({ error: "Restoration updates are currently limited to Papua New Guinea connections." }, 403);
-  if (isRateLimited(request, "restore")) return json({ error: "Please try again later." }, 429);
+  if (await isRateLimited(request, env, "restore")) return json({ error: "Please try again later." }, 429);
   const body = await readJson(request);
   const latitude = Number(body?.latitude);
   const longitude = Number(body?.longitude);

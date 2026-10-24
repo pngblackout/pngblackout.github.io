@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { webcrypto } from 'node:crypto';
 import worker, { validateReport } from '../src/index.js';
+
+globalThis.crypto = webcrypto;
 
 test('validates structured outage locations', () => {
   assert.equal(validateReport({ city: 'Port Moresby', suburb: 'Gerehu', locality: 'Stage 3', latitude: -9.47, longitude: 147.16, accuracy: 25 }).value.description, null);
@@ -28,8 +31,8 @@ test('location migration preserves legacy columns and allows empty new fields', 
 });
 
 function dbMock() {
-  let rows = []; let id = 0;
-  return { prepare(sql) { return { bind(...args) { return { async run() { if(sql.startsWith('INSERT')) { const [latitude,longitude,city,suburb,locality,impact,duration,started_at,created_at]=args; rows.push({id:++id,latitude,longitude,city,suburb,locality,impact,duration,description:null,started_at,created_at,restored_at:null,report_count:1,source:'community'}); return {meta:{last_row_id:id,changes:1}}; } if(sql.startsWith('UPDATE')) { const row=rows.find(r=>r.id===args[1]&&!r.restored_at); if(row){row.restored_at=args[0];return {meta:{changes:1}}} return {meta:{changes:0}}; } }, async first(){ return rows.find(r=>r.id===args[0]) || null; } }; }, async all(){return {results:rows.filter(r=>sql.includes('restored_at IS NULL')?!r.restored_at:true)}} }; } };
+  let rows = []; let rateRows = []; let id = 0;
+  return { prepare(sql) { return { bind(...args) { return { async run() { if(sql.includes('rate_limits')) { if(sql.startsWith('INSERT')) rateRows.push({rate_key:args[0],window_started_at:args[1],request_count:1}); if(sql.startsWith('UPDATE')) { const row=rateRows.find(r=>r.rate_key===args[1]); if(row){row.window_started_at=args[0];row.request_count=1;} } return {meta:{changes:1,last_row_id:0}}; } if(sql.startsWith('INSERT')) { const [latitude,longitude,city,suburb,locality,impact,duration,started_at,created_at]=args; rows.push({id:++id,latitude,longitude,city,suburb,locality,impact,duration,description:null,started_at,created_at,restored_at:null,report_count:1,source:'community'}); return {meta:{last_row_id:id,changes:1}}; } if(sql.startsWith('UPDATE')) { const row=rows.find(r=>r.id===args[1]&&!r.restored_at); if(row){row.restored_at=args[0];return {meta:{changes:1}}} return {meta:{changes:0}}; } }, async first(){ if(sql.includes('rate_limits')) return rateRows.find(r=>r.rate_key===args[0]) || null; return rows.find(r=>r.id===args[0]) || null; } }; }, async all(){return {results:rows.filter(r=>sql.includes('restored_at IS NULL')?!r.restored_at:true)}} }; } };
 }
 const env = () => ({DB:dbMock(),ASSETS:{fetch(){return new Response('asset')}}});
 const cfRequest = (url, init, country) => { const request = new Request(url, init); Object.defineProperty(request, 'cf', { value: { country } }); return request; };
@@ -50,6 +53,12 @@ test('caches public outage listings briefly at the edge', async () => {
 
 test('limits a client to one report every ten minutes', async () => {
   const e=env(); const request=()=>worker.fetch(cfRequest('https://test/api/outages',{method:'POST',headers:{'content-type':'application/json','cf-connecting-ip':'rate-limit-test'},body:JSON.stringify({city:'Other',latitude:-5.85,longitude:144.30,accuracy:25})},'PG'),e);
+  assert.equal((await request()).status,201);
+  assert.equal((await request()).status,429);
+});
+
+test('persists report rate limits across Worker requests', async () => {
+  const e=env(); const request=()=>worker.fetch(cfRequest('https://test/api/outages',{method:'POST',headers:{'content-type':'application/json','cf-connecting-ip':'persistent-limit-test'},body:JSON.stringify({city:'Other',latitude:-5.85,longitude:144.30,accuracy:25})},'PG'),e);
   assert.equal((await request()).status,201);
   assert.equal((await request()).status,429);
 });
