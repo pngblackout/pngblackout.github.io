@@ -1,0 +1,2 @@
+ALTER TABLE outages ADD COLUMN impact TEXT;
+ALTER TABLE outages ADD COLUMN duration TEXT;
