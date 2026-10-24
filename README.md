@@ -2,6 +2,10 @@
 
 A lightweight community-driven outage map for Port Moresby, Papua New Guinea. Reports are approximate, community-submitted, and clearly labeled as unverified.
 
+## GitHub Pages preview
+
+The static frontend is published through GitHub Pages. The Cloudflare Worker/D1 backend is not connected yet, so the Pages preview intentionally shows an offline/API-placeholder state and does not submit reports. When the Worker is ready, set `window.POWER_API_BASE` before `public/app.js` loads to its HTTPS URL.
+
 ## Local development
 
 Requirements: Node.js 18+ and npm. Wrangler 3 is pinned because it supports Node.js 18. Install dependencies and start the local Worker:
