@@ -2,8 +2,9 @@
 // before this script loads, or leave empty for same-origin local development.
 const API_BASE = window.POWER_API_BASE || '';
 const apiUrl = (path) => `${API_BASE}${path}`;
-const map = L.map('map', { preferCanvas: true }).setView([-9.478, 147.15], 12);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors', maxZoom: 19, updateWhenZooming: false, updateWhenIdle: true, keepBuffer: 1, crossOrigin: true }).addTo(map);
+const PAPUA_NEW_GUINEA_BOUNDS = L.latLngBounds([[-11.2, 140.5], [-0.5, 156.3]]);
+const map = L.map('map', { preferCanvas: true, maxBounds: PAPUA_NEW_GUINEA_BOUNDS, maxBoundsViscosity: 1, minZoom: 5 }).setView([-9.478, 147.15], 12);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors', maxZoom: 19, noWrap: true, updateWhenZooming: false, updateWhenIdle: true, keepBuffer: 1, crossOrigin: true }).addTo(map);
 const markers = L.layerGroup().addTo(map); let selected = null; let showRestored = false;
 const $ = (id) => document.getElementById(id);
 function esc(value) { return String(value ?? '').replace(/[&<>'"]/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
