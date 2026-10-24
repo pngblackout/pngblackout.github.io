@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Port Moresby Power Watch</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIINfQ3j9e4T1LQKXc8y5yW6Q7xZ6Xq5x4=" crossorigin="">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header><div><p class="eyebrow">Community signal · Port Moresby</p><h1>Power Watch</h1></div><span id="connection" class="status">Connecting…</span></header>
+  <main>
+    <section class="intro"><h2>See the latest power reports</h2><p>Community reports are approximate and are not independently verified. Confirm critical information with your electricity provider.</p></section>
+    <section id="map" aria-label="Power outage map"></section>
+    <div class="toolbar"><span id="last-updated">Loading reports…</span><button id="toggle-restored" type="button">Show restored</button></div>
+    <section class="panel"><h2>Report an outage</h2><p class="hint">Tap the map to set an approximate location. Avoid sharing personal information.</p><form id="report-form"><label>Location <span id="location-label">Not selected</span></label><input id="latitude" type="hidden"><input id="longitude" type="hidden"><label for="description">What are you seeing? <span>(optional)</span></label><textarea id="description" maxlength="500" rows="3" placeholder="For example: whole street is without power"></textarea><input class="trap" id="website" tabindex="-1" autocomplete="off"><button type="submit">Submit community report</button><p id="form-message" role="status"></p></form></section>
+    <section class="panel"><div class="section-heading"><h2>Recent reports</h2><span id="report-count"></span></div><div id="reports" class="reports"></div></section>
+  </main>
+  <footer>Updates automatically every 15 seconds · Data is community-reported</footer>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script><script src="/app.js"></script>
+</body></html>
