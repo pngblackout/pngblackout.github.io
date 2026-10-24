@@ -44,6 +44,10 @@ function isRateLimited(request, action = "report") {
   entries.push(now); recentRequests.set(rateKey, entries); return false;
 }
 
+function isPapuaNewGuinea(request) {
+  return request.cf?.country === "PG";
+}
+
 function outage(row) {
   const restored = row.restored_at ? new Date(row.restored_at) : null;
   const started = new Date(row.started_at);
@@ -65,6 +69,7 @@ async function listOutages(env, url) {
 }
 
 async function createOutage(request, env) {
+  if (!isPapuaNewGuinea(request)) return json({ error: "Reports are currently limited to Papua New Guinea connections." }, 403);
   if (isRateLimited(request, "report")) return json({ error: "You can submit one report every 10 minutes." }, 429);
   const body = await readJson(request);
   const checked = validateReport(body);
@@ -76,6 +81,7 @@ async function createOutage(request, env) {
 }
 
 async function restoreOutage(request, env, id) {
+  if (!isPapuaNewGuinea(request)) return json({ error: "Restoration updates are currently limited to Papua New Guinea connections." }, 403);
   if (isRateLimited(request, "restore")) return json({ error: "You can mark one outage restored every 10 minutes." }, 429);
   const now = new Date().toISOString();
   const result = await env.DB.prepare("UPDATE outages SET restored_at = ? WHERE id = ? AND restored_at IS NULL").bind(now, id).run();
