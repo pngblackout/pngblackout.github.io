@@ -1,0 +1,15 @@
+{
+  "cities": ["Port Moresby", "Other"],
+  "suburbs": {
+    "Port Moresby": {
+      "Badili": [], "Baruni": [], "Bomana": [], "Boroko": ["Boroko North", "Boroko South", "East Boroko", "Other / Not listed"],
+      "Dogura": [], "Ela Beach": [], "Ensisi Valley": [], "Erima": [], "Gabutu": [],
+      "Gerehu": ["Stage 1", "Stage 2", "Stage 3", "Stage 4", "Stage 5", "Stage 6", "Stage 7", "Stage 8", "Stage 9", "Other / Not listed"],
+      "Gordon": ["Gordon North", "Gordon South", "Other / Not listed"], "Gordon North": [], "Hanuabada": [], "Hohola": ["Hohola North", "Hohola South", "Other / Not listed"], "Hohola North": [],
+      "Jacksons Airport": [], "Kaevaga": [], "Kaugere": [], "Kila Kila": [], "Koki": [], "Konedobu": [], "Korobosea": [], "Matirogo": [], "Moitaka": [],
+      "Morata": ["Morata 1", "Morata 2", "Morata 3", "Other / Not listed"], "Napa Napa": [], "Newtown": [], "Pari": [], "Rainbow Estate": [], "Sabama": [], "Saraga": [], "Tatana": [], "Taurama": [], "Tokarara": [], "Touaguba Hill": [], "Vabukori": [],
+      "Waigani": ["Waigani Drive", "Waigani North", "University of Papua New Guinea area", "Other / Not listed"],
+      "2 Mile": [], "3 Mile": [], "4 Mile": [], "5 Mile": [], "6 Mile": [], "7 Mile": [], "8 Mile": [], "9 Mile": [], "Other / Not listed": []
+    }
+  }
+}

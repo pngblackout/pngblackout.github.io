@@ -1,4 +1,6 @@
 // Broad geographic bounds covering mainland PNG and its major islands.
+import locations from "../public/locations.json" assert { type: "json" };
+
 const PAPUA_NEW_GUINEA = { minLat: -11.7, maxLat: -0.5, minLng: 140.8, maxLng: 156.3 };
 const MAX_DESCRIPTION = 500;
 const RATE_WINDOW_MS = 10 * 60_000;
@@ -23,15 +25,26 @@ function validCoordinate(value, min, max) {
 
 export function validateReport(input) {
   if (!input || typeof input !== "object") return { error: "A JSON object is required." };
-  const latitude = Number(input.latitude);
-  const longitude = Number(input.longitude);
-  if (!validCoordinate(latitude, PAPUA_NEW_GUINEA.minLat, PAPUA_NEW_GUINEA.maxLat) || !validCoordinate(longitude, PAPUA_NEW_GUINEA.minLng, PAPUA_NEW_GUINEA.maxLng)) {
+  const latitude = input.latitude == null || input.latitude === "" ? null : Number(input.latitude);
+  const longitude = input.longitude == null || input.longitude === "" ? null : Number(input.longitude);
+  if ((latitude === null) !== (longitude === null) || (latitude !== null && (!validCoordinate(latitude, PAPUA_NEW_GUINEA.minLat, PAPUA_NEW_GUINEA.maxLat) || !validCoordinate(longitude, PAPUA_NEW_GUINEA.minLng, PAPUA_NEW_GUINEA.maxLng)))) {
     return { error: "Please choose a location within Papua New Guinea." };
+  }
+  const city = input.city == null ? "" : String(input.city).trim();
+  const suburb = input.suburb == null ? "" : String(input.suburb).trim();
+  const locality = input.locality == null ? "" : String(input.locality).trim();
+  if (!locations.cities.includes(city)) return { error: "Please choose a valid city." };
+  if (city === "Other" && (suburb || locality)) return { error: "Suburb and locality must be empty when city is Other." };
+  if (city === "Port Moresby") {
+    if (!Object.prototype.hasOwnProperty.call(locations.suburbs[city], suburb)) return { error: "Please choose a valid Port Moresby suburb." };
+    const knownLocalities = locations.suburbs[city][suburb];
+    if (locality && !knownLocalities.includes(locality)) return { error: "Please choose a valid locality for the selected suburb." };
+    if (locality === "Other / Not listed" && !knownLocalities.includes(locality)) return { error: "Please choose a valid locality for the selected suburb." };
   }
   const description = input.description == null ? null : String(input.description).trim();
   if (description && description.length > MAX_DESCRIPTION) return { error: `Description must be ${MAX_DESCRIPTION} characters or fewer.` };
   if (input.website) return { error: "Spam check failed." };
-  return { value: { latitude, longitude, description: description || null } };
+  return { value: { latitude, longitude, city, suburb: suburb || null, locality: locality || null, description: description || null } };
 }
 
 function isRateLimited(request, action = "report") {
@@ -76,8 +89,8 @@ async function createOutage(request, env) {
   const checked = validateReport(body);
   if (checked.error) return json({ error: checked.error }, 400);
   const now = new Date().toISOString();
-  const result = await env.DB.prepare("INSERT INTO outages (latitude, longitude, description, started_at, created_at) VALUES (?, ?, ?, ?, ?)")
-    .bind(checked.value.latitude, checked.value.longitude, checked.value.description, now, now).run();
+  const result = await env.DB.prepare("INSERT INTO outages (latitude, longitude, city, suburb, locality, description, started_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
+    .bind(checked.value.latitude, checked.value.longitude, checked.value.city, checked.value.suburb, checked.value.locality, checked.value.description, now, now).run();
   return json({ outage: outage({ id: result.meta.last_row_id, ...checked.value, started_at: now, restored_at: null, created_at: now, report_count: 1, source: "community" }) }, 201);
 }
 
