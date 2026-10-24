@@ -33,12 +33,13 @@ export function validateReport(input) {
   return { value: { latitude, longitude, description: description || null } };
 }
 
-function isRateLimited(request) {
+function isRateLimited(request, action = "report") {
   const key = request.headers.get("cf-connecting-ip") || request.headers.get("x-forwarded-for") || "unknown";
+  const rateKey = `${action}:${key}`;
   const now = Date.now();
-  const entries = (recentRequests.get(key) || []).filter((time) => now - time < RATE_WINDOW_MS);
-  if (entries.length >= RATE_LIMIT) { recentRequests.set(key, entries); return true; }
-  entries.push(now); recentRequests.set(key, entries); return false;
+  const entries = (recentRequests.get(rateKey) || []).filter((time) => now - time < RATE_WINDOW_MS);
+  if (entries.length >= RATE_LIMIT) { recentRequests.set(rateKey, entries); return true; }
+  entries.push(now); recentRequests.set(rateKey, entries); return false;
 }
 
 function outage(row) {
@@ -62,7 +63,7 @@ async function listOutages(env, url) {
 }
 
 async function createOutage(request, env) {
-  if (isRateLimited(request)) return json({ error: "Too many reports. Please wait a minute." }, 429);
+  if (isRateLimited(request, "report")) return json({ error: "You can submit one report every 10 minutes." }, 429);
   const body = await readJson(request);
   const checked = validateReport(body);
   if (checked.error) return json({ error: checked.error }, 400);
@@ -73,6 +74,7 @@ async function createOutage(request, env) {
 }
 
 async function restoreOutage(request, env, id) {
+  if (isRateLimited(request, "restore")) return json({ error: "You can mark one outage restored every 10 minutes." }, 429);
   const now = new Date().toISOString();
   const result = await env.DB.prepare("UPDATE outages SET restored_at = ? WHERE id = ? AND restored_at IS NULL").bind(now, id).run();
   if (!result.meta.changes) return json({ error: "Active outage not found." }, 404);

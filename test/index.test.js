@@ -27,3 +27,12 @@ test('limits a client to one report every ten minutes', async () => {
   assert.equal((await request()).status,201);
   assert.equal((await request()).status,429);
 });
+
+test('limits a client to one restoration every ten minutes', async () => {
+  const e=env();
+  const create=await worker.fetch(new Request('https://test/api/outages',{method:'POST',headers:{'content-type':'application/json','cf-connecting-ip':'restore-create'},body:JSON.stringify({latitude:-9.47,longitude:147.16})}),e);
+  const created=await create.json();
+  const request=()=>worker.fetch(new Request(`https://test/api/outages/${created.outage.id}/restore`,{method:'POST',headers:{'cf-connecting-ip':'restore-test'}}),e);
+  assert.equal((await request()).status,200);
+  assert.equal((await request()).status,429);
+});
