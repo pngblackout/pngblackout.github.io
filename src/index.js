@@ -1,7 +1,7 @@
 const PORT_MORESBY = { minLat: -9.75, maxLat: -9.25, minLng: 146.90, maxLng: 147.40 };
 const MAX_DESCRIPTION = 500;
-const RATE_WINDOW_MS = 60_000;
-const RATE_LIMIT = 5;
+const RATE_WINDOW_MS = 10 * 60_000;
+const RATE_LIMIT = 1;
 const recentRequests = new Map();
 const CORS_HEADERS = {
   "access-control-allow-origin": "https://shipitandrei.github.io",

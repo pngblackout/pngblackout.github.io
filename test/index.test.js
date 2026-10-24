@@ -21,3 +21,9 @@ test('creates and restores an outage through the API', async () => {
   response=await worker.fetch(new Request(`https://test/api/outages/${created.outage.id}/restore`,{method:'POST'}),e);
   assert.equal(response.status,200); const restored=await response.json(); assert.equal(restored.outage.active,false); assert.ok(restored.outage.restored_at);
 });
+
+test('limits a client to one report every ten minutes', async () => {
+  const e=env(); const request=()=>worker.fetch(new Request('https://test/api/outages',{method:'POST',headers:{'content-type':'application/json','cf-connecting-ip':'rate-limit-test'},body:JSON.stringify({latitude:-9.47,longitude:147.16})}),e);
+  assert.equal((await request()).status,201);
+  assert.equal((await request()).status,429);
+});
