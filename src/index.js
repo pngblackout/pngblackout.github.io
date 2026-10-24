@@ -101,5 +101,9 @@ export default {
     if (request.method === "POST" && restore) return restoreOutage(request, env, Number(restore[1]));
     if (url.pathname.startsWith("/api/")) return json({ error: "Not found." }, 404);
     return env.ASSETS.fetch(request);
+  },
+
+  async scheduled(_event, env) {
+    await env.DB.prepare("DELETE FROM outages WHERE restored_at IS NOT NULL AND restored_at < datetime('now', '-30 days')").run();
   }
 };

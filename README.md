@@ -34,6 +34,8 @@ npm test
 
 Reports are rate-limited per client address in the Worker isolate. This is basic spam protection, not an identity or moderation system. A production deployment should consider durable rate limiting and an admin review workflow.
 
+Restored report history older than 30 days is automatically deleted by the Worker’s daily scheduled cleanup. Ongoing reports are retained until they are restored.
+
 ## Deployment
 
 Deployment is intentionally not performed by this project session. Before deploying, create a D1 database, update `database_id` in `wrangler.toml`, apply remote migrations, and configure the Worker through Cloudflare. Never commit tokens or `.dev.vars`.

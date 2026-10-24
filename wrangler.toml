@@ -11,3 +11,6 @@ binding = "DB"
 database_name = "port-moresby-power"
 database_id = "cc301083-ff06-4412-9bf1-78e0768243da"
 migrations_dir = "migrations"
+
+[triggers]
+crons = ["0 3 * * *"]
