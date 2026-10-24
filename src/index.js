@@ -1,4 +1,5 @@
-const PORT_MORESBY = { minLat: -9.75, maxLat: -9.25, minLng: 146.90, maxLng: 147.40 };
+// Broad geographic bounds covering mainland PNG and its major islands.
+const PAPUA_NEW_GUINEA = { minLat: -11.7, maxLat: -0.5, minLng: 140.8, maxLng: 156.3 };
 const MAX_DESCRIPTION = 500;
 const RATE_WINDOW_MS = 10 * 60_000;
 const RATE_LIMIT = 1;
@@ -24,8 +25,8 @@ export function validateReport(input) {
   if (!input || typeof input !== "object") return { error: "A JSON object is required." };
   const latitude = Number(input.latitude);
   const longitude = Number(input.longitude);
-  if (!validCoordinate(latitude, PORT_MORESBY.minLat, PORT_MORESBY.maxLat) || !validCoordinate(longitude, PORT_MORESBY.minLng, PORT_MORESBY.maxLng)) {
-    return { error: "Please choose a location within Port Moresby." };
+  if (!validCoordinate(latitude, PAPUA_NEW_GUINEA.minLat, PAPUA_NEW_GUINEA.maxLat) || !validCoordinate(longitude, PAPUA_NEW_GUINEA.minLng, PAPUA_NEW_GUINEA.maxLng)) {
+    return { error: "Please choose a location within Papua New Guinea." };
   }
   const description = input.description == null ? null : String(input.description).trim();
   if (description && description.length > MAX_DESCRIPTION) return { error: `Description must be ${MAX_DESCRIPTION} characters or fewer.` };

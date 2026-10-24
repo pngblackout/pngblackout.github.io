@@ -4,7 +4,8 @@ import worker, { validateReport } from '../src/index.js';
 
 test('validates approximate Port Moresby report locations', () => {
   assert.equal(validateReport({ latitude: -9.47, longitude: 147.16, description: 'Street is dark' }).value.description, 'Street is dark');
-  assert.match(validateReport({ latitude: 0, longitude: 147 }).error, /Port Moresby/);
+  assert.equal(validateReport({ latitude: -5.85, longitude: 144.30, description: 'Highlands outage' }).value.description, 'Highlands outage');
+  assert.match(validateReport({ latitude: 0, longitude: 147 }).error, /Papua New Guinea/);
   assert.match(validateReport({ latitude: -9.47, longitude: 147.16, description: 'x'.repeat(501) }).error, /500/);
 });
 
