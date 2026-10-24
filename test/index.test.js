@@ -36,3 +36,11 @@ test('limits a client to one restoration every ten minutes', async () => {
   assert.equal((await request()).status,200);
   assert.equal((await request()).status,429);
 });
+
+test('keeps report limits independent by client IP', async () => {
+  const e=env();
+  const request=(ip)=>worker.fetch(new Request('https://test/api/outages',{method:'POST',headers:{'content-type':'application/json','cf-connecting-ip':ip},body:JSON.stringify({latitude:-9.47,longitude:147.16})}),e);
+  assert.equal((await request('198.51.100.10')).status,201);
+  assert.equal((await request('198.51.100.10')).status,429);
+  assert.equal((await request('198.51.100.11')).status,201);
+});

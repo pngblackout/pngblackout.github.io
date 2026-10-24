@@ -34,8 +34,10 @@ export function validateReport(input) {
 }
 
 function isRateLimited(request, action = "report") {
-  const key = request.headers.get("cf-connecting-ip") || request.headers.get("x-forwarded-for") || "unknown";
-  const rateKey = `${action}:${key}`;
+  const cloudflareIp = request.headers.get("cf-connecting-ip");
+  const forwardedIp = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+  const clientIp = cloudflareIp || forwardedIp || "unknown";
+  const rateKey = `${action}:${clientIp}`;
   const now = Date.now();
   const entries = (recentRequests.get(rateKey) || []).filter((time) => now - time < RATE_WINDOW_MS);
   if (entries.length >= RATE_LIMIT) { recentRequests.set(rateKey, entries); return true; }
