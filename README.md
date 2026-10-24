@@ -1,6 +1,6 @@
-# Port Moresby Power Watch
+# PNG Blackout Tracker
 
-A lightweight community-driven outage map for Port Moresby, Papua New Guinea. Reports are approximate, community-submitted, and clearly labeled as unverified.
+A lightweight community-driven power outage map for Papua New Guinea, starting with Port Moresby. Reports are approximate, community-submitted, and clearly labeled as unverified.
 
 ## GitHub Pages preview
 
