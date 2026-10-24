@@ -100,7 +100,7 @@ async function createOutage(request, env) {
   if (body === null) return json({ error: "Request body is missing, invalid, or too large." }, 400);
   const checked = validateReport(body);
   if (checked.error) return json({ error: checked.error }, 400);
-  if (isRateLimited(request, "report")) return json({ error: "You can submit one report every 10 minutes." }, 429);
+  if (isRateLimited(request, "report")) return json({ error: "Please try again later." }, 429);
   const now = new Date().toISOString();
   const result = await env.DB.prepare("INSERT INTO outages (latitude, longitude, city, suburb, locality, impact, duration, started_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
     .bind(checked.value.latitude, checked.value.longitude, checked.value.city, checked.value.suburb, checked.value.locality, checked.value.impact, checked.value.duration, now, now).run();
@@ -109,7 +109,7 @@ async function createOutage(request, env) {
 
 async function restoreOutage(request, env, id) {
   if (!isPapuaNewGuinea(request)) return json({ error: "Restoration updates are currently limited to Papua New Guinea connections." }, 403);
-  if (isRateLimited(request, "restore")) return json({ error: "You can mark one outage restored every 10 minutes." }, 429);
+  if (isRateLimited(request, "restore")) return json({ error: "Please try again later." }, 429);
   const body = await readJson(request);
   const latitude = Number(body?.latitude);
   const longitude = Number(body?.longitude);
@@ -118,7 +118,7 @@ async function restoreOutage(request, env, id) {
   if (!existing) return json({ error: "Active outage not found." }, 404);
   if (!Number.isFinite(existing.latitude) || !Number.isFinite(existing.longitude)) return json({ error: "This report has no precise location for nearby restoration." }, 409);
   const distance = distanceMeters(latitude, longitude, existing.latitude, existing.longitude);
-  if (distance > RESTORE_RADIUS_METERS) return json({ error: "You must be within 5 km of the reported outage to mark it restored." }, 403);
+  if (distance > RESTORE_RADIUS_METERS) return json({ error: "You must be near the reported outage to mark it restored." }, 403);
   const now = new Date().toISOString();
   const result = await env.DB.prepare("UPDATE outages SET restored_at = ? WHERE id = ? AND restored_at IS NULL").bind(now, id).run();
   if (!result.meta.changes) return json({ error: "Active outage not found." }, 404);
