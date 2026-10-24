@@ -9,5 +9,5 @@ binding = "ASSETS"
 [[d1_databases]]
 binding = "DB"
 database_name = "port-moresby-power"
-database_id = "local-development"
+database_id = "cc301083-ff06-4412-9bf1-78e0768243da"
 migrations_dir = "migrations"

@@ -3,11 +3,16 @@ const MAX_DESCRIPTION = 500;
 const RATE_WINDOW_MS = 60_000;
 const RATE_LIMIT = 5;
 const recentRequests = new Map();
+const CORS_HEADERS = {
+  "access-control-allow-origin": "https://shipitandrei.github.io",
+  "access-control-allow-methods": "GET, POST, OPTIONS",
+  "access-control-allow-headers": "content-type"
+};
 
 export function json(data, status = 200, extraHeaders = {}) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", ...extraHeaders }
+    headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", ...CORS_HEADERS, ...extraHeaders }
   });
 }
 
@@ -78,6 +83,7 @@ async function restoreOutage(request, env, id) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if (request.method === "OPTIONS" && url.pathname.startsWith("/api/")) return new Response(null, { status: 204, headers: CORS_HEADERS });
     if (request.method === "GET" && url.pathname === "/api/outages") return listOutages(env, url);
     if (request.method === "POST" && url.pathname === "/api/outages") return createOutage(request, env);
     const restore = url.pathname.match(/^\/api\/outages\/(\d+)\/restore$/);
