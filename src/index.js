@@ -14,7 +14,7 @@ const RATE_WINDOW_MS = 10 * 60_000;
 const RATE_LIMIT = 1;
 const recentRequests = new Map();
 const CORS_HEADERS = {
-  "access-control-allow-origin": "https://shipitandrei.github.io",
+  "access-control-allow-origin": "https://pngblackout.github.io",
   "access-control-allow-methods": "GET, POST, OPTIONS",
   "access-control-allow-headers": "content-type"
 };

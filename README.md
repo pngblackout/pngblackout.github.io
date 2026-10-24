@@ -2,9 +2,9 @@
 
 A lightweight community-driven power outage map for Papua New Guinea, starting with Port Moresby. Reports are approximate, community-submitted, and clearly labeled as unverified.
 
-## GitHub Pages preview
+## GitHub Pages
 
-The static frontend is published through GitHub Pages. The Cloudflare Worker/D1 backend is not connected yet, so the Pages preview intentionally shows an offline/API-placeholder state and does not submit reports. When the Worker is ready, set `window.POWER_API_BASE` before `public/app.js` loads to its HTTPS URL.
+The static frontend is published at [pngblackout.github.io](https://pngblackout.github.io). It uses the Cloudflare Worker backend configured in `public/index.html`; no frontend credentials or API tokens are required.
 
 ## Local development
 
@@ -29,7 +29,7 @@ npm test
 
 - `GET /api/outages` returns active reports.
 - `GET /api/outages?include=all` returns active and restored reports.
-- `POST /api/outages` accepts `{ latitude, longitude, description, website }`. Coordinates and description length are validated server-side; `website` is a honeypot field.
+- `POST /api/outages` accepts GPS coordinates, structured city/suburb/locality fields, optional impact and duration values, and the `website` honeypot field. Coordinates, accuracy, and location combinations are validated server-side.
 - `POST /api/outages/:id/restore` marks an active report restored.
 
 Reports are rate-limited per client address in the Worker isolate. This is basic spam protection, not an identity or moderation system. A production deployment should consider durable rate limiting and an admin review workflow.
