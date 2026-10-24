@@ -42,6 +42,12 @@ test('creates and restores an outage through the API', async () => {
   assert.equal(response.status,200); const restored=await response.json(); assert.equal(restored.outage.active,false); assert.ok(restored.outage.restored_at);
 });
 
+test('caches public outage listings briefly at the edge', async () => {
+  const response = await worker.fetch(cfRequest('https://test/api/outages', {}, 'PG'), env());
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('cache-control'), 'public, max-age=5, s-maxage=10, stale-while-revalidate=30');
+});
+
 test('limits a client to one report every ten minutes', async () => {
   const e=env(); const request=()=>worker.fetch(cfRequest('https://test/api/outages',{method:'POST',headers:{'content-type':'application/json','cf-connecting-ip':'rate-limit-test'},body:JSON.stringify({city:'Other',latitude:-5.85,longitude:144.30,accuracy:25})},'PG'),e);
   assert.equal((await request()).status,201);

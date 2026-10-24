@@ -91,7 +91,9 @@ async function listOutages(env, url) {
     ? "SELECT * FROM outages ORDER BY COALESCE(restored_at, '9999') DESC, started_at DESC LIMIT 200"
     : "SELECT * FROM outages WHERE restored_at IS NULL ORDER BY started_at DESC LIMIT 200";
   const result = await env.DB.prepare(query).all();
-  return json({ outages: (result.results || []).map(outage), updatedAt: new Date().toISOString() });
+  return json({ outages: (result.results || []).map(outage), updatedAt: new Date().toISOString() }, 200, {
+    "cache-control": "public, max-age=5, s-maxage=10, stale-while-revalidate=30"
+  });
 }
 
 async function createOutage(request, env) {
