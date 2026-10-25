@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PNG Blackout Tracker · Admin</title>
+  <style>
+    body{font-family:system-ui,sans-serif;max-width:42rem;margin:4rem auto;padding:1rem;color:#17212b;background:#f3f6f8}
+    main{background:white;border-radius:12px;padding:2rem;box-shadow:0 2px 12px #17324a20}
+    h1{margin-top:0}p{color:#586875;line-height:1.5}
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Admin area</h1>
+    <p id="status">Checking admin session…</p>
+    <p><a id="login" href="/api/admin/login" hidden>Sign in with GitHub</a></p>
+  </main>
+  <script>
+    fetch('/api/admin/me').then((response) => { if (!response.ok) throw new Error(); return response.json(); }).then((data) => { document.querySelector('#status').textContent = `Signed in as ${data.login}. Moderation tools are not enabled yet.`; }).catch(() => { document.querySelector('#status').textContent = 'Administrator sign-in is required.'; document.querySelector('#login').hidden = false; });
+  </script>
+</body>
+</html>

@@ -95,6 +95,52 @@ async function readJson(request) {
   try { return await request.json(); } catch { return null; }
 }
 
+async function sha256(value) {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+function adminOrigin(env) {
+  return env.ADMIN_ORIGIN || "https://port-moresby-power-map.shipitandrei.workers.dev";
+}
+
+async function adminSession(request, env) {
+  const token = request.headers.get("cookie")?.match(/(?:^|; )png_admin=([^;]+)/)?.[1];
+  if (!token) return null;
+  const row = await env.DB.prepare("SELECT github_login, expires_at FROM admin_sessions WHERE token_hash = ?").bind(await sha256(token)).first();
+  return row && row.expires_at > Date.now() ? row : null;
+}
+
+async function adminLogin(env) {
+  if (!env.GITHUB_CLIENT_ID || !env.GITHUB_CLIENT_SECRET || !env.GITHUB_ALLOWED_LOGIN) return json({ error: "Admin login is not configured." }, 503);
+  const state = crypto.randomUUID();
+  await env.DB.prepare("INSERT INTO admin_oauth_states (state, expires_at) VALUES (?, ?)").bind(state, Date.now() + 10 * 60_000).run();
+  const params = new URLSearchParams({ client_id: env.GITHUB_CLIENT_ID, redirect_uri: `${adminOrigin(env)}/api/admin/callback`, state, scope: "read:user" });
+  return Response.redirect(`https://github.com/login/oauth/authorize?${params}`, 302);
+}
+
+async function adminCallback(request, env, url) {
+  const state = url.searchParams.get("state");
+  const code = url.searchParams.get("code");
+  const validState = state && await env.DB.prepare("SELECT state FROM admin_oauth_states WHERE state = ? AND expires_at > ?").bind(state, Date.now()).first();
+  if (!validState || !code) return new Response("Invalid login session.", { status: 400 });
+  await env.DB.prepare("DELETE FROM admin_oauth_states WHERE state = ?").bind(state).run();
+  const tokenResponse = await fetch("https://github.com/login/oauth/access_token", { method: "POST", headers: { accept: "application/json", "content-type": "application/json" }, body: JSON.stringify({ client_id: env.GITHUB_CLIENT_ID, client_secret: env.GITHUB_CLIENT_SECRET, code }) });
+  const tokenData = await tokenResponse.json();
+  if (!tokenData.access_token) return new Response("GitHub login failed.", { status: 502 });
+  const userResponse = await fetch("https://api.github.com/user", { headers: { authorization: `Bearer ${tokenData.access_token}`, accept: "application/vnd.github+json", "user-agent": "png-blackout-tracker-admin" } });
+  const user = await userResponse.json();
+  if (!user.login || user.login.toLowerCase() !== env.GITHUB_ALLOWED_LOGIN.toLowerCase()) return new Response("Not authorized.", { status: 403 });
+  const sessionToken = crypto.randomUUID();
+  await env.DB.prepare("INSERT INTO admin_sessions (token_hash, github_login, expires_at, created_at) VALUES (?, ?, ?, ?)").bind(await sha256(sessionToken), user.login, Date.now() + 8 * 60 * 60_000, Date.now()).run();
+  return new Response(null, { status: 302, headers: { location: "/admin/", "set-cookie": `png_admin=${sessionToken}; Max-Age=28800; Path=/; HttpOnly; Secure; SameSite=Lax` } });
+}
+
+async function adminMe(request, env) {
+  const session = await adminSession(request, env);
+  return session ? json({ authenticated: true, login: session.github_login }) : json({ authenticated: false }, 401);
+}
+
 async function listOutages(env, url) {
   const includeRestored = url.searchParams.get("include") === "all";
   const query = includeRestored
@@ -151,6 +197,9 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     if (request.method === "OPTIONS" && url.pathname.startsWith("/api/")) return new Response(null, { status: 204, headers: CORS_HEADERS });
+    if (request.method === "GET" && url.pathname === "/api/admin/login") return adminLogin(env);
+    if (request.method === "GET" && url.pathname === "/api/admin/callback") return adminCallback(request, env, url);
+    if (request.method === "GET" && url.pathname === "/api/admin/me") return adminMe(request, env);
     if (request.method === "GET" && url.pathname === "/api/outages") return listOutages(env, url);
     if (request.method === "POST" && url.pathname === "/api/outages") return createOutage(request, env);
     const restore = url.pathname.match(/^\/api\/outages\/(\d+)\/restore$/);
